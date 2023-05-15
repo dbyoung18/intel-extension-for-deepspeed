@@ -40,9 +40,13 @@ class SYCLOpBuilder(OpBuilder):
         return version_ge_1_1 + version_ge_1_3 + version_ge_1_5
 
     def cxx_args(self):
-        cxx_flags = ['-fsycl', '-fsycl-targets=spir64_gen', '-g', '-gdwarf-4', '-O3', '-std=c++17', '-fPIC', '-DMKL_ILP64', '-fno-strict-aliasing']
+        cxx_flags = ['-fsycl', '-fsycl-targets=spir64_gen', '-g', '-gdwarf-4', '-std=c++17', '-fPIC', '-DMKL_ILP64', '-fno-strict-aliasing']
         if os.environ.get('USE_MKL_GEMM'):
             cxx_flags.append('-DUSE_MKL_GEMM')
+        if os.environ.get("DEBUG_IDEX") == 1:
+            cxx_flags.append('-Og')
+        else:
+            cxx_flags.append('-O3')
         return cxx_flags
 
     def extra_ldflags(self):
@@ -134,7 +138,7 @@ def sycl_kernel_path(code_path):
         sycl_dir_path = os.path.join(os.path.dirname(sycl_link_path),
                                      "../../" + SYCL_KERNEL_PATH)
 
-        os.mkdir(sycl_dir_path)
+        os.makedirs(sycl_dir_path, exist_ok=True)
         os.symlink("../../" + SYCL_KERNEL_PATH, sycl_link_path, True)
         print("Create directory and link for sycl kernel:{}-->{}".format(
             sycl_link_path,
