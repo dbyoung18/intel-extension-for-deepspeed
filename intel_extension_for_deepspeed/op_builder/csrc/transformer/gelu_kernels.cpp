@@ -150,37 +150,18 @@ void fused_bias_gelu(const bf16* input,
     int id = item_ct1.get_local_id(2);
     int loop_stride = item_ct1.get_local_range(2);
 
-    const ushort4* input_cast = reinterpret_cast<const ushort4*>(input);
-    ushort4* vals_cast = reinterpret_cast<ushort4*>(vals);
-    const ushort4* bias_cast = reinterpret_cast<const ushort4*>(bias);
-
     for (int i = 0; i < iterations; i++) {
         if (i * loop_stride + id < row_stride) {
-            ushort4 vals_vec = input_cast[row * row_stride + i * loop_stride + id];
-            ushort4 bias_vec = bias_cast[i * loop_stride + id];
 
-            float4 data = {float(vals_vec.x()),
-                           float(vals_vec.y()),
-                           float(vals_vec.z()),
-                           float(vals_vec.w())};
-            float4 bias = {float(bias_vec.x()),
-                           float(bias_vec.y()),
-                           float(bias_vec.z()),
-                           float(bias_vec.w())};
+            bf16 vals_vec = input[row * row_stride + i * loop_stride + id];
+            bf16 bias_vec = bias[i * loop_stride + id];
 
-            data += bias;
+            float data = float(vals_vec) + float(bias_vec);
+            data = gelu(data);
 
-            data.x() = gelu(data.x());
-            data.y() = gelu(data.y());
-            data.z() = gelu(data.z());
-            data.w() = gelu(data.w());
+            vals_vec = data;
+            vals[row * row_stride + i * loop_stride + id] = vals_vec;
 
-            vals_vec.x() = bf16(data.x());
-            vals_vec.y() = bf16(data.y());
-            vals_vec.z() = bf16(data.z());
-            vals_vec.w() = bf16(data.w());
-
-            vals_cast[row * row_stride + i * loop_stride + id] = vals_vec;
         }
     }
 }
@@ -396,13 +377,13 @@ void launch_bias_gelu(const T* input,
                       queue stream)
 {
     int iterations = (intermediate_size + 1023) / 1024;
-    int threads = (intermediate_size - 1) / (iterations * 4) + 1;
+    int threads = (intermediate_size - 1) / (iterations) + 1;
     range<3> block_dims(1, 1, threads);
     range<3> grid_dims(1, 1, batch_size);
 
     stream.submit([&](handler& cgh) {
         cgh.parallel_for(nd_range<3>(grid_dims * block_dims, block_dims), [=](nd_item<3> item_ct1) {
-            fused_bias_gelu(input, bias, output, intermediate_size / 4, iterations, item_ct1);
+            fused_bias_gelu(input, bias, output, intermediate_size, iterations, item_ct1);
         });
     });
 }
