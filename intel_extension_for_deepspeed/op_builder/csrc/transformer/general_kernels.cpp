@@ -9,6 +9,8 @@ using namespace cl::sycl;
 #error "Unsupported compiler"
 #endif
 
+#include "conversion_utils.h"
+
 constexpr int MAX_SG_NUM = 32;
 constexpr int MAX_SG_NUM1 = MAX_SG_NUM + 1;
 template <typename T>
@@ -67,8 +69,8 @@ void column_sum_reduce(const bf16* inp,
     int y_stride = width * MAX_SG_NUM;
 
     float localSum = 0;
-    ushort* inp_cast = (ushort*)inp;
-    ushort* out_cast = (ushort*)out;
+    bf16* inp_cast = (bf16*)inp;
+    bf16* out_cast = (bf16*)out;
     // Loop across matrix height
     if (idx < width) {
         int offset = item_ct1.get_local_id(1) * width + idx;
@@ -161,21 +163,21 @@ void fused_add2_kernel(const int N,
                        const bf16* inp2,
                        nd_item<3> item_ct1)
 {
-    const ushort4* inp1_cast = reinterpret_cast<const ushort4*>(inp1);
-    const ushort4* inp2_cast = reinterpret_cast<const ushort4*>(inp2);
-    ushort4* out_cast = reinterpret_cast<ushort4*>(out);
+    const bf164* inp1_cast = reinterpret_cast<const bf164*>(inp1);
+    const bf164* inp2_cast = reinterpret_cast<const bf164*>(inp2);
+    bf164* out_cast = reinterpret_cast<bf164*>(out);
 
     DPCPP_1D_KERNEL_LOOP(j, N)
     {
         float4 val;
-        float4 inp1_reg = {float(inp1_cast[j].x()),
-                           float(inp1_cast[j].y()),
-                           float(inp1_cast[j].z()),
-                           float(inp1_cast[j].w())};
-        float4 inp2_reg = {float(inp2_cast[j].x()),
-                           float(inp2_cast[j].y()),
-                           float(inp2_cast[j].z()),
-                           float(inp2_cast[j].w())};
+        float4 inp1_reg = {float(inp1_cast[j][0]),
+                           float(inp1_cast[j][1]),
+                           float(inp1_cast[j][2]),
+                           float(inp1_cast[j][3])};
+        float4 inp2_reg = {float(inp2_cast[j][0]),
+                           float(inp2_cast[j][1]),
+                           float(inp2_cast[j][2]),
+                           float(inp2_cast[j][3])};
 
         val.x() = inp1_reg.x() + inp2_reg.x();
         val.y() = inp1_reg.y() + inp2_reg.y();

@@ -7,6 +7,8 @@
 #endif
 #include "custom_sycl_layers.hpp"
 
+#include "conversion_utils.h"
+
 #define rows_trans 16
 #define cols_trans 16
 
@@ -141,14 +143,14 @@ void transform_0213<bf16>(bf16* output,
              (item_ct1.get_group(1) % head_ext) * (heads / head_ext);  // Head (0-11)
     int d3 = item_ct1.get_local_id(2);                                 // Values (groups of 4)
 
-    const sycl::ushort4* vals_vec = reinterpret_cast<const sycl::ushort4*>(vals);
-    sycl::ushort4* output_vec = reinterpret_cast<sycl::ushort4*>(output);
+    const bf164* vals_vec = reinterpret_cast<const bf164*>(vals);
+    bf164* output_vec = reinterpret_cast<bf164*>(output);
 
-    sycl::ushort4 inputs_cast = vals_vec[d0 * d0_stride + d1 * d1_stride + d2 * d2_stride + d3];
-    float4 inputs = {float(inputs_cast.x()),
-                     float(inputs_cast.y()),
-                     float(inputs_cast.z()),
-                     float(inputs_cast.w())};
+    bf164 inputs_cast = vals_vec[d0 * d0_stride + d1 * d1_stride + d2 * d2_stride + d3];
+    float4 inputs = {float(inputs_cast[0]),
+                     float(inputs_cast[1]),
+                     float(inputs_cast[2]),
+                     float(inputs_cast[3])};
 
     sycl::float4 outputs;
     outputs.x() = inputs.x();
@@ -156,7 +158,7 @@ void transform_0213<bf16>(bf16* output,
     outputs.z() = inputs.z();
     outputs.w() = inputs.w();
 
-    ushort4 outputs_cast = {bf16(outputs.x()),
+    bf164 outputs_cast = {bf16(outputs.x()),
                             bf16(outputs.y()),
                             bf16(outputs.z()),
                             bf16(outputs.w())};
@@ -345,23 +347,23 @@ void bias_add_transform_0213<bf16>(bf16* output,
              (item_ct1.get_group(0) % head_ext) * (heads / head_ext);  // Head (0-11)
     int d3 = item_ct1.get_local_id(2);                                 // Values (groups of 4)
 
-    const sycl::ushort4* vals_vec = reinterpret_cast<const sycl::ushort4*>(vals);
-    const sycl::ushort4* bias_vec = reinterpret_cast<const sycl::ushort4*>(bias);
-    sycl::ushort4* output_vec = reinterpret_cast<sycl::ushort4*>(output);
+    const bf164* vals_vec = reinterpret_cast<const bf164*>(vals);
+    const bf164* bias_vec = reinterpret_cast<const bf164*>(bias);
+    bf164* output_vec = reinterpret_cast<bf164*>(output);
 
-    sycl::ushort4 inputs_cast =
+    bf164 inputs_cast =
         vals_vec[d0 * d0_stride * (item_ct1.get_group_range(0) / head_ext) + cnt * d1_stride +
                  d1 * d1_stride * (item_ct1.get_group_range(0) / head_ext) + d2 * d2_stride + d3];
-    sycl::ushort4 biases_cast = bias_vec[cnt * d1_stride + d2 * d2_stride + d3];
-    float4 inputs = {float(inputs_cast.x()),
-                     float(inputs_cast.y()),
-                     float(inputs_cast.z()),
-                     float(inputs_cast.w())};
+    bf164 biases_cast = bias_vec[cnt * d1_stride + d2 * d2_stride + d3];
+    float4 inputs = {float(inputs_cast[0]),
+                     float(inputs_cast[1]),
+                     float(inputs_cast[2]),
+                     float(inputs_cast[3])};
 
-    float4 biases = {float(biases_cast.x()),
-                     float(biases_cast.y()),
-                     float(biases_cast.z()),
-                     float(biases_cast.w())};
+    float4 biases = {float(biases_cast[0]),
+                     float(biases_cast[1]),
+                     float(biases_cast[2]),
+                     float(biases_cast[3])};
 
     sycl::float4 outputs;
     outputs.x() = inputs.x() + biases.x();
@@ -369,7 +371,7 @@ void bias_add_transform_0213<bf16>(bf16* output,
     outputs.z() = inputs.z() + biases.z();
     outputs.w() = inputs.w() + biases.w();
 
-    ushort4 outputs_cast = {bf16(outputs.x()),
+    bf164 outputs_cast = {bf16(outputs.x()),
                             bf16(outputs.y()),
                             bf16(outputs.z()),
                             bf16(outputs.w())};
@@ -701,10 +703,10 @@ void transform4d_0213<bf16>(bf16* out,
     int d3 = item_ct1.get_local_id(2);  // Values (groups of 8)
 
     if (d2 < seq_length) {
-        const sycl::ushort4* in_vec = reinterpret_cast<const sycl::ushort4*>(in);
-        sycl::ushort4* output_vec = reinterpret_cast<sycl::ushort4*>(out);
+        const bf164* in_vec = reinterpret_cast<const bf164*>(in);
+        bf164* output_vec = reinterpret_cast<bf164*>(out);
 
-        sycl::ushort4 vals_vec = in_vec[cnt * d0_stride * item_ct1.get_group_range(2) +
+        bf164 vals_vec = in_vec[cnt * d0_stride * item_ct1.get_group_range(2) +
                                         d0 * d0_stride + d1 * d1_stride + d2 * d2_stride + d3];
 
         output_vec[d0 * d0_out_stride * item_ct1.get_group_range(0) + cnt * d2_out_stride +
