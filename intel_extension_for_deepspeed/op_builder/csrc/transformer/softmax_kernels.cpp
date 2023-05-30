@@ -10,6 +10,8 @@ using namespace cl::sycl;
 #include "custom_sycl_layers.hpp"
 #include "general_kernels.hpp"
 
+#include "conversion_utils.h"
+
 #define MAX_SG_NUM (32)
 // Fused attention + softmax
 template <int tbSize, int blockStride, int tbSeq>
@@ -172,8 +174,8 @@ void attn_softmax(bf16* vals,
     int wid = item_ct1.get_local_id(2) >> 5;
     int lane = item_ct1.get_local_id(2) & 0x1f;
 
-    ushort4* val_cast = reinterpret_cast<ushort4*>(vals);
-    const ushort4* attn_mask_cast = reinterpret_cast<const ushort4*>(attn_mask);
+    bf164* val_cast = reinterpret_cast<bf164*>(vals);
+    const bf164* attn_mask_cast = reinterpret_cast<const bf164*>(attn_mask);
 
     float4 data[MAX_THREAD_ITERATIONS];
 
@@ -182,21 +184,21 @@ void attn_softmax(bf16* vals,
     for (int i = 0; i < iterations; i++) {
         int data_id = i * iteration_stride + seq_lane;
         if (data_id < seq_length) {
-            ushort4 mask_ushort = attn_mask_cast[mask_offset + data_id];
-            ushort4 val_ushort = val_cast[data_offset + data_id];
-            float4 mask = {float(mask_ushort.x()),
-                           float(mask_ushort.y()),
-                           float(mask_ushort.z()),
-                           float(mask_ushort.w())};
-            data[i] = {float(val_ushort.x()),
-                       float(val_ushort.y()),
-                       float(val_ushort.z()),
-                       float(val_ushort.w())};
+            bf164 mask_bf16 = attn_mask_cast[mask_offset + data_id];
+            bf164 val_bf16 = val_cast[data_offset + data_id];
+            float4 mask = {float(mask_bf16[0]),
+                           float(mask_bf16[1]),
+                           float(mask_bf16[2]),
+                           float(mask_bf16[3])};
+            data[i] = {float(val_bf16[0]),
+                       float(val_bf16[1]),
+                       float(val_bf16[2]),
+                       float(val_bf16[3])};
 
-            data[i].x() += mask.x();
-            data[i].y() += mask.y();
-            data[i].z() += mask.z();
-            data[i].w() += mask.w();
+            data[i].x() += mask[0];
+            data[i].y() += mask[1];
+            data[i].z() += mask[2];
+            data[i].w() += mask[3];
 
             max_val = (data[i].x() > max_val ? data[i].x() : max_val);
             max_val = (data[i].y() > max_val ? data[i].y() : max_val);
@@ -278,11 +280,11 @@ void attn_softmax(bf16* vals,
 
         int data_id = i * iteration_stride + seq_lane;
         if (data_id < seq_length) {
-            ushort4 data_ushort = {bf16(data[i].x()),
+            bf164 data_bf16 = {bf16(data[i].x()),
                                    bf16(data[i].y()),
                                    bf16(data[i].z()),
                                    bf16(data[i].w())};
-            val_cast[data_offset + data_id] = data_ushort;
+            val_cast[data_offset + data_id] = data_bf16;
         }
     }
 }
@@ -721,8 +723,8 @@ void softmax_backward_kernel_v2(T* grad /* input & output*/,
     if constexpr (std::is_same_v<T, bf16>) {
         float grad_reg[ITERATIONS];
         float output_reg[ITERATIONS];
-        ushort* grad_cast = (ushort*)grad;
-        const ushort* output_cast = (const ushort*)output;
+        bf16* grad_cast = (bf16*)grad;
+        const bf16* output_cast = (const bf16*)output;
         for (int i = 0; i < ITERATIONS; ++i) {
             int curr_idx = item_ct1.get_local_id(2) + i * MAX_SG_NUM;
             if (curr_idx < softmax_length) {
