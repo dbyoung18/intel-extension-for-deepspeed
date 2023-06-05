@@ -28,20 +28,9 @@ public:
 
     void Forward(int bsz, const T* input_ptr, const T* weights, T* out, sycl::queue _Q)
     {
-        if constexpr (std::is_same_v<bf16, T>) {
-            float alpha = 1.0f;
-            float beta = 0.0f;
-            onednn_matmul_ex(_Q,
-                             false,
-                             true,
-                             bsz,
-                             config_.outputSize,
-                             config_.inputSize,
-                             alpha,
-                             beta,
-                             input_ptr,
-                             weights,
-                             out);
+#ifdef USE_MKL_GEMM
+        if constexpr (std::is_same_v<T, bf16>) {
+            throw std::runtime_error("Unsupport bf16 batch gemm");
         } else {
             T alpha = T(1.);
             T beta = T(0.);
@@ -57,7 +46,23 @@ public:
                            input_ptr,
                            out);
         }
+#else
+        float alpha = 1.0f;
+        float beta = 0.0f;
+        onednn_matmul_ex(_Q,
+                         false,
+                         true,
+                         bsz,
+                         config_.outputSize,
+                         config_.inputSize,
+                         alpha,
+                         beta,
+                         input_ptr,
+                         weights,
+                         out);
+#endif
     }
+
     void Backward(int bsz,
                   const T* out_grad,
                   const T* input_ptr,
@@ -69,33 +74,9 @@ public:
                   T* inp_grad_out = nullptr,
                   T* out_grad_trans_out = nullptr)
     {
-        if constexpr (std::is_same_v<bf16, T>) {
-            float alpha = 1.0f;
-            float beta = 0.0f;
-            onednn_matmul_ex(stream,
-                             true,
-                             false,
-                             config_.outputSize,
-                             config_.inputSize,
-                             bsz,
-                             alpha,
-                             beta,
-                             out_grad,
-                             input_ptr,
-                             weights_grad);
-            onednn_matmul_ex(stream,
-                             false,
-                             false,
-                             bsz,
-                             config_.inputSize,
-                             config_.outputSize,
-                             alpha,
-                             beta,
-                             out_grad,
-                             weights,
-                             inp_grad_out);
-            launch_fuse_transpose_bias_kernel<T>(
-                out_grad, bias_grad, bsz, config_.outputSize, stream);
+#ifdef USE_MKL_GEMM
+        if constexpr (std::is_same_v<T, bf16>) {
+            throw std::runtime_error("Unsupport bf16 batch gemm");
         } else {
             T alpha = (T)1.0;
             T beta = (T)0.0;
@@ -124,6 +105,34 @@ public:
             launch_fuse_transpose_bias_kernel<T>(
                 out_grad, bias_grad, bsz, config_.outputSize, stream);
         }
+#else
+        float alpha = 1.0f;
+        float beta = 0.0f;
+        onednn_matmul_ex(stream,
+                         true,
+                         false,
+                         config_.outputSize,
+                         config_.inputSize,
+                         bsz,
+                         alpha,
+                         beta,
+                         out_grad,
+                         input_ptr,
+                         weights_grad);
+        onednn_matmul_ex(stream,
+                         false,
+                         false,
+                         bsz,
+                         config_.inputSize,
+                         config_.outputSize,
+                         alpha,
+                         beta,
+                         out_grad,
+                         weights,
+                         inp_grad_out);
+        launch_fuse_transpose_bias_kernel<T>(
+            out_grad, bias_grad, bsz, config_.outputSize, stream);
+#endif
     }
 
 private:
