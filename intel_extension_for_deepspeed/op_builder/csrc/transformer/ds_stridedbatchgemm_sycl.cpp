@@ -29,8 +29,7 @@ std::vector<torch::Tensor> stridedbatchgemm_forward(const int batchSize,
                                                                  alpha,
                                                                  beta,
                                                                  oneapi::mkl::transpose::trans,
-                                                                 oneapi::mkl::transpose::nontrans,
-                                                                 {0, 0, 0}));
+                                                                 oneapi::mkl::transpose::nontrans));
 
     const T* matA_ptr = (const T*)matA.data_ptr();
     const T* matB_ptr = (const T*)matB.data_ptr();
@@ -74,8 +73,7 @@ std::vector<torch::Tensor> stridedbatchgemm_backward(const int batchSize,
                                                                  alpha,
                                                                  beta,
                                                                  oneapi::mkl::transpose::trans,
-                                                                 oneapi::mkl::transpose::nontrans,
-                                                                 {0, 0, 0}));
+                                                                 oneapi::mkl::transpose::nontrans));
 
     const T* grad_c_ptr = (const T*)grad_matC.data_ptr();
     const T* matA_ptr = (const T*)matA.data_ptr();

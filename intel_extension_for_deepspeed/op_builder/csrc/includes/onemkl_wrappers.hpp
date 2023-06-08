@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 
+template <typename T>
 int onemkl_gemm_ex(sycl::queue handle,
                    oneapi::mkl::transpose transa,
                    oneapi::mkl::transpose transb,
@@ -20,52 +21,23 @@ int onemkl_gemm_ex(sycl::queue handle,
                    int k,
                    const float alpha,
                    const float beta,
-                   const float* A,
-                   const float* B,
-                   float* C);
+                   const T* A,
+                   const T* B,
+                   T* C);
 
-int onemkl_gemm_ex(sycl::queue handle,
-                   oneapi::mkl::transpose transa,
-                   oneapi::mkl::transpose transb,
-                   int m,
-                   int n,
-                   int k,
-                   const sycl::half alpha,
-                   const sycl::half beta,
-                   const sycl::half* A,
-                   const sycl::half* B,
-                   sycl::half* C);
-
+template <typename T>
 int onemkl_strided_batched_gemm(sycl::queue handle,
                                 int m,
                                 int n,
                                 int k,
                                 const float alpha,
                                 const float beta,
-                                const float* A,
-                                const float* B,
-                                float* C,
-                                oneapi::mkl::transpose op_A,
-                                oneapi::mkl::transpose op_B,
+                                const T* A,
+                                const T* B,
+                                T* C,
+                                oneapi::mkl::transpose transa,
+                                oneapi::mkl::transpose transb,
                                 int stride_A,
                                 int stride_B,
                                 int stride_C,
-                                int batch,
-                                int algo = -1);
-
-int onemkl_strided_batched_gemm(sycl::queue handle,
-                                int m,
-                                int n,
-                                int k,
-                                const sycl::half alpha,
-                                const sycl::half beta,
-                                const sycl::half* A,
-                                const sycl::half* B,
-                                sycl::half* C,
-                                oneapi::mkl::transpose op_A,
-                                oneapi::mkl::transpose op_B,
-                                int stride_A,
-                                int stride_B,
-                                int stride_C,
-                                int batch,
-                                int algo = 99);
+                                int batch);
