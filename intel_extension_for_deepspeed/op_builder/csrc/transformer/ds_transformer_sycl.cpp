@@ -113,12 +113,10 @@ BertTransformerLayer<T>::BertTransformerLayer(int layer_id,
                                                         _seq_length,
                                                         _seq_length,
                                                         _hidden_size / _heads,
-                                                        //(T(1.0) / T(sqrt(_hidden_size / _heads))),
                                                         float(1.0 / sqrt(_hidden_size / _heads)),
                                                         float(0.0),
                                                         oneapi::mkl::transpose::trans,
-                                                        oneapi::mkl::transpose::nontrans,
-                                                        gemm_algos[3])),
+                                                        oneapi::mkl::transpose::nontrans)),
       _attn_context(typename StridedBatchGemm<T>::Config(_batch_size * _heads,
                                                          _hidden_size / _heads,
                                                          _seq_length,
@@ -126,8 +124,7 @@ BertTransformerLayer<T>::BertTransformerLayer(int layer_id,
                                                          float(1.0),
                                                          float(0.0),
                                                          oneapi::mkl::transpose::nontrans,
-                                                         oneapi::mkl::transpose::nontrans,
-                                                         gemm_algos[4]))
+                                                         oneapi::mkl::transpose::nontrans))
 {
     assert(_hidden_size % _heads == 0);
     Initialize();
@@ -1057,31 +1054,14 @@ std::vector<torch::Tensor> ds_transformer_backward(int layer_id,
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    m.def("forward_fp32",
-          &ds_transformer_forward<float>,
-          "DeepSpeed Transformer forward with fp32 (DPCPP)");
-    m.def("forward_fp16",
-          &ds_transformer_forward<sycl::half>,
-          "DeepSpeed Transformer forward with fp16 (DPCPP)");
-    m.def("forward_bf16",
-          &ds_transformer_forward<bf16>,
-          "DeepSpeed Transformer forward with bf16 (DPCPP)");
-    m.def("backward_fp32",
-          &ds_transformer_backward<float>,
-          "DeepSpeed Transformer backward with fp32 (DPCPP)");
-    m.def("backward_fp16",
-          &ds_transformer_backward<sycl::half>,
-          "DeepSpeed Transformer backward with fp16 (DPCPP)");
-    m.def("backward_bf16",
-          &ds_transformer_backward<bf16>,
-          "DeepSpeed Transformer backward with bf16 (DPCPP)");
-    m.def("create_transformer_layer_fp32",
-          &create_transformer_layer<float>,
-          "Create DeepSpeed Transformer Transformer Layer with fp32 (DPCPP)");
-    m.def("create_transformer_layer_fp16",
-          &create_transformer_layer<sycl::half>,
-          "Create DeepSpeed Transformer Transformer Layer with fp16 (DPCPP)");
-    m.def("create_transformer_layer_bf16",
-          &create_transformer_layer<bf16>,
-          "Create DeepSpeed Transformer Transformer Layer with bf16 (DPCPP)");
+#define DEF_OPS(_name, _dtype)                                                      \
+    m.def("forward_" #_name, &ds_transformer_forward<_dtype>,                       \
+          "DeepSpeed Transformer forward with " #_name " (DPCPP)");                 \
+    m.def("backward_" #_name, &ds_transformer_backward<_dtype>,                     \
+          "DeepSpeed Transformer backward with " #_name " (DPCPP)");                \
+    m.def("create_transformer_layer_" #_name, &create_transformer_layer<_dtype>,    \
+          "Create DeepSpeed Transformer Transformer Layer with " #_name " (DPCPP)")
+    DEF_OPS(fp32, float);
+    DEF_OPS(fp16, half);
+    DEF_OPS(bf16, bf16);
 }
