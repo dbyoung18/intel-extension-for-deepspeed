@@ -20,26 +20,15 @@ class TransformerBuilder(SYCLOpBuilder):
 
     def sources(self):
         return [
-            sycl_kernel_path('csrc/transformer/onednn_wrappers.cpp'),
-            sycl_kernel_path(
-                'csrc/transformer/ds_transformer_sycl.cpp'),
-            sycl_kernel_path('csrc/transformer/onemkl_wrappers.cpp'),
-            sycl_kernel_path('csrc/transformer/transform_kernels.cpp'),
-            sycl_kernel_path('csrc/transformer/ds_gelu_sycl.cpp'),
-            sycl_kernel_path('csrc/transformer/gelu_kernels.cpp'),
-            sycl_kernel_path('csrc/transformer/ds_dropout_sycl.cpp'),
+            sycl_kernel_path('csrc/transformer/ds_transformer_sycl.cpp'),
             sycl_kernel_path('csrc/transformer/dropout_kernels.cpp'),
-            sycl_kernel_path(
-                'csrc/transformer/ds_feedforward_sycl.cpp'),
-            sycl_kernel_path(
-                'csrc/transformer/ds_layer_reorder_sycl.cpp'),
-            sycl_kernel_path('csrc/transformer/ds_normalize_sycl.cpp'),
+            sycl_kernel_path('csrc/transformer/gelu_kernels.cpp'),
+            sycl_kernel_path('csrc/transformer/general_kernels.cpp'),
             sycl_kernel_path('csrc/transformer/normalize_kernels.cpp'),
-            sycl_kernel_path('csrc/transformer/ds_softmax_sycl.cpp'),
             sycl_kernel_path('csrc/transformer/softmax_kernels.cpp'),
-            sycl_kernel_path(
-                'csrc/transformer/ds_stridedbatchgemm_sycl.cpp'),
-            sycl_kernel_path('csrc/transformer/general_kernels.cpp')
+            sycl_kernel_path('csrc/transformer/onednn_wrappers.cpp'),
+            sycl_kernel_path('csrc/transformer/onemkl_wrappers.cpp'),
+            sycl_kernel_path('csrc/transformer/transform_kernels.cpp')
         ]
 
     def include_paths(self):

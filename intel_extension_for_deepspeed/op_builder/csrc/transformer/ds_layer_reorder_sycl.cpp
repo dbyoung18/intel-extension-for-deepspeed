@@ -123,29 +123,16 @@ std::vector<torch::Tensor> fused_add2(const torch::Tensor& input1,
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    m.def("fused_add2_fp32", &fused_add2<float>,
-          "Fused add2 with fp32 (DPCPP)");
-    m.def("fused_add2_fp16", &fused_add2<sycl::half>,
-          "Fused add2 with fp16 (DPCPP)");
-    m.def("fused_add2_bf16", &fused_add2<bf16>,
-          "Fused add2 with bf16 (DPCPP)");
-    m.def("transform_0213_fp32", &transform_0213<float>,
-          "transform 0213 with fp32 (DPCPP)");
-    m.def("transform_0213_fp16", &transform_0213<sycl::half>,
-          "transform 0213 with fp16 (DPCPP)");
-    m.def("transform_0213_bf16", &transform_0213<sycl::half>,
-          "transform 0213 with bf16 (DPCPP)"); // simple memory copy
-    m.def("bias_add_transform_0213_fp32", &bias_add_transform_0213<float>,
-          "bias add transform 0213 with fp32 (DPCPP)");
-    m.def("bias_add_transform_0213_fp16", &bias_add_transform_0213<sycl::half>,
-          "bias add transform 0213 with fp16 (DPCPP)");
-    m.def("bias_add_transform_0213_bf16", &bias_add_transform_0213<bf16>,
-          "bias add transform 0213 with bf16 (DPCPP)");
-    m.def("transform4d_0213_fp32", &transform4d_0213<float>,
-          "transform4d 0213 with fp32 (DPCPP)");
-    m.def("transform4d_0213_fp16", &transform4d_0213<sycl::half>,
-          "transform4d 0213 with fp16 (DPCPP)");
-    m.def("transform4d_0213_bf16", &transform4d_0213<sycl::half>,
-          "transform4d 0213 with bf16 (DPCPP)"); // simple memory copy
-
+#define DEF_OPS(_name, _dtype)                                                 \
+    m.def("fused_add2_" #_name, &fused_add2<_dtype>,                           \
+          "Fused add2 with " #_name " (DPCPP)");                               \
+    m.def("transform_0213_" #_name, &transform_0213<_dtype>,                   \
+          "transform 0213 with " #_name " (DPCPP)");                           \
+    m.def("bias_add_transform_0213_" #_name, &bias_add_transform_0213<_dtype>, \
+          "bias add transform 0213 with " #_name " (DPCPP)");                  \
+    m.def("transform4d_0213_" #_name, &transform4d_0213<_dtype>,               \
+          "transform4d 0213 with " #_name " (DPCPP)")
+    DEF_OPS(fp32, float);
+    DEF_OPS(fp16, half);
+    DEF_OPS(bf16, bf16);
 }

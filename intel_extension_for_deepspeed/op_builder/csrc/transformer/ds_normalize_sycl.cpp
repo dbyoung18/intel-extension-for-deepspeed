@@ -152,16 +152,12 @@ std::vector<torch::Tensor> normalize_backward(const int batch,
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    m.def("forward_fp32", &normalize_forward<float>,
-          "NORMALIZE forward with fp32 (DPCPP)");
-    m.def("forward_bf16", &normalize_forward<bf16>,
-          "NORMALIZE forward with bf16 (DPCPP)");
-    m.def("forward_fp16", &normalize_forward<sycl::half>,
-          "NORMALIZE forward with fp16 (DPCPP)");
-    m.def("backward_fp32", &normalize_backward<float>,
-          "NORMALIZE backward with fp32 (DPCPP)");
-    m.def("backward_bf16", &normalize_backward<bf16>,
-          "NORMALIZE backward with bf16 (DPCPP)");
-    m.def("backward_fp16", &normalize_backward<sycl::half>,
-          "NORMALIZE backward with fp16 (DPCPP)");
+#define DEF_OPS(_name, _dtype)                             \
+    m.def("forward_" #_name, &normalize_forward<_dtype>,   \
+          "NORMALIZE forward with " #_name " (DPCPP)");    \
+    m.def("backward_" #_name, &normalize_backward<_dtype>, \
+          "NORMALIZE backward with " #_name " (DPCPP)")
+    DEF_OPS(fp32, float);
+    DEF_OPS(fp16, half);
+    DEF_OPS(bf16, bf16);
 }

@@ -82,16 +82,12 @@ std::vector<torch::Tensor> feedforward_backward(int bsz,
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    m.def("forward_fp32", &feedforward_forward<float>,
-          "FEEDFORWARD forward with fp32 (DPCPP)");
-    m.def("forward_bf16", &feedforward_forward<bf16>,
-          "FEEDFORWARD forward with bf16 (DPCPP)");
-    m.def("forward_fp16", &feedforward_forward<sycl::half>,
-          "FEEDFORWARD forward with fp16 (DPCPP)");
-    m.def("backward_fp32", &feedforward_backward<float>,
-          "FEEDFORWARD backward with fp32 (DPCPP)");
-    m.def("backward_bf16", &feedforward_backward<bf16>,
-          "FEEDFORWARD backward with bf16 (DPCPP)");
-    m.def("backward_fp16", &feedforward_backward<sycl::half>,
-          "FEEDFORWARD backward with fp16 (DPCPP)");
+#define DEF_OPS(_name, _dtype)                               \
+    m.def("forward_" #_name, &feedforward_forward<_dtype>,   \
+          "FEEDFORWARD forward with " #_name " (DPCPP)");    \
+    m.def("backward_" #_name, &feedforward_backward<_dtype>, \
+          "FEEDFORWARD backward with " #_name " (DPCPP)")
+    DEF_OPS(fp32, float);
+    DEF_OPS(fp16, half);
+    DEF_OPS(bf16, bf16);
 }

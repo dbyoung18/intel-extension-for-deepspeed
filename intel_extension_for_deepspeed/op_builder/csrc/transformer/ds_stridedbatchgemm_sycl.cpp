@@ -94,16 +94,12 @@ std::vector<torch::Tensor> stridedbatchgemm_backward(const int batchSize,
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    m.def("forward_fp32", &stridedbatchgemm_forward<float>,
-          "STRIDEDBATCHGEMM forward with fp32 (DPCPP)");
-    m.def("forward_bf16", &stridedbatchgemm_forward<bf16>,
-          "STRIDEDBATCHGEMM forward with bf16 (DPCPP)");
-    m.def("forward_fp16", &stridedbatchgemm_forward<sycl::half>,
-          "STRIDEDBATCHGEMM forward with fp16 (DPCPP)");
-    m.def("backward_fp32", &stridedbatchgemm_backward<float>,
-          "STRIDEDBATCHGEMM backward with fp32 (DPCPP)");
-    m.def("backward_bf16", &stridedbatchgemm_backward<bf16>,
-          "STRIDEDBATCHGEMM backward with bf16 (DPCPP)");
-    m.def("backward_fp16", &stridedbatchgemm_backward<sycl::half>,
-          "STRIDEDBATCHGEMM backward with fp16 (DPCPP)");
+#define DEF_OPS(_name, _dtype)                                    \
+    m.def("forward_" #_name, &stridedbatchgemm_forward<_dtype>,   \
+          "STRIDEDBATCHGEMM forward with " #_name " (DPCPP)");    \
+    m.def("backward_" #_name, &stridedbatchgemm_backward<_dtype>, \
+          "STRIDEDBATCHGEMM backward with " #_name " (DPCPP)")
+    DEF_OPS(fp32, float);
+    DEF_OPS(fp16, half);
+    DEF_OPS(bf16, bf16);
 }

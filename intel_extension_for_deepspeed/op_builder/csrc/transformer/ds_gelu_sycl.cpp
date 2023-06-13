@@ -40,16 +40,12 @@ std::vector<torch::Tensor> gelu_backward(torch::Tensor& d_output,
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    m.def("forward_fp32", &gelu_forward<float>,
-          "GELU forward with fp32 (DPCPP)");
-    m.def("forward_bf16", &gelu_forward<bf16>,
-          "GELU forward with bf16 (DPCPP)");
-    m.def("forward_fp16", &gelu_forward<half>,
-          "GELU forward with fp16 (DPCPP)");
-    m.def("backward_fp32", &gelu_backward<float>,
-          "GELU backward with fp32 (DPCPP)");
-    m.def("backward_bf16", &gelu_backward<bf16>,
-          "GELU backward with bf16 (DPCPP)");
-    m.def("backward_fp16", &gelu_backward<half>,
-          "GELU backward with fp16 (DPCPP)");
+#define DEF_OPS(_name, _dtype)                        \
+    m.def("forward_" #_name, &gelu_forward<_dtype>,   \
+          "GELU forward with " #_name " (DPCPP)");    \
+    m.def("backward_" #_name, &gelu_backward<_dtype>, \
+          "GELU backward with " #_name " (DPCPP)")
+    DEF_OPS(fp32, float);
+    DEF_OPS(fp16, half);
+    DEF_OPS(bf16, bf16);
 }
